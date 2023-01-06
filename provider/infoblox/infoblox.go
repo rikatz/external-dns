@@ -183,11 +183,24 @@ func (p *ProviderConfig) Records(ctx context.Context) (endpoints []*endpoint.End
 
 	for _, zone := range zones {
 		logrus.Debugf("fetch records from zone '%s'", zone.Fqdn)
+
+		view := p.view
+		if view == "" {
+			view = "default"
+		}
+		searchParams := ibclient.NewQueryParams(
+			false,
+			map[string]string{
+				"zone": zone.Fqdn,
+				"view": view,
+			},
+		)
+
 		var resA []ibclient.RecordA
 		objA := ibclient.NewEmptyRecordA()
 		objA.View = p.view
 		objA.Zone = zone.Fqdn
-		err = p.client.GetObject(objA, "", nil, &resA)
+		err = p.client.GetObject(objA, "", searchParams, &resA)
 		if err != nil && !isNotFoundError(err) {
 			return nil, fmt.Errorf("could not fetch A records from zone '%s': %s", zone.Fqdn, err)
 		}
@@ -233,7 +246,7 @@ func (p *ProviderConfig) Records(ctx context.Context) (endpoints []*endpoint.End
 		objH := ibclient.NewEmptyHostRecord()
 		objH.View = p.view
 		objH.Zone = zone.Fqdn
-		err = p.client.GetObject(objH, "", nil, &resH)
+		err = p.client.GetObject(objH, "", searchParams, &resH)
 		if err != nil && !isNotFoundError(err) {
 			return nil, fmt.Errorf("could not fetch host records from zone '%s': %s", zone.Fqdn, err)
 		}
@@ -255,7 +268,7 @@ func (p *ProviderConfig) Records(ctx context.Context) (endpoints []*endpoint.End
 		objC := ibclient.NewEmptyRecordCNAME()
 		objC.View = p.view
 		objC.Zone = zone.Fqdn
-		err = p.client.GetObject(objC, "", nil, &resC)
+		err = p.client.GetObject(objC, "", searchParams, &resC)
 		if err != nil && !isNotFoundError(err) {
 			return nil, fmt.Errorf("could not fetch CNAME records from zone '%s': %s", zone.Fqdn, err)
 		}
@@ -274,7 +287,7 @@ func (p *ProviderConfig) Records(ctx context.Context) (endpoints []*endpoint.End
 				objP := ibclient.NewEmptyRecordPTR()
 				objP.Zone = arpaZone
 				objP.View = p.view
-				err = p.client.GetObject(objP, "", nil, &resP)
+				err = p.client.GetObject(objP, "", searchParams, &resP)
 				if err != nil && !isNotFoundError(err) {
 					return nil, fmt.Errorf("could not fetch PTR records from zone '%s': %s", zone.Fqdn, err)
 				}
@@ -291,7 +304,7 @@ func (p *ProviderConfig) Records(ctx context.Context) (endpoints []*endpoint.End
 				View: p.view,
 			},
 		)
-		err = p.client.GetObject(objT, "", nil, &resT)
+		err = p.client.GetObject(objT, "", searchParams, &resT)
 		if err != nil && !isNotFoundError(err) {
 			return nil, fmt.Errorf("could not fetch TXT records from zone '%s': %s", zone.Fqdn, err)
 		}
